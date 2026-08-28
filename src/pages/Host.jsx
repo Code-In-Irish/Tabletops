@@ -141,22 +141,20 @@ function HostConsole({ sessionId }) {
 
   return (
     <div className="page host">
-      <Link to="/host" className="back-link">← All sessions</Link>
-
       <header className="host-top">
-        <div>
+        <div className="host-top-left">
+          <Link to="/host" className="back-link">← All sessions</Link>
           <div className="room-code">{session.room_code}</div>
-          <div className="muted">{participants.length} joined</div>
+          <span className="muted small">{participants.length} joined</span>
+          {session.status !== "ended" && (
+            <button className="end-session-link" onClick={endSession}>End session</button>
+          )}
         </div>
         <div className="qr-box">
-          <QRCode value={joinUrl} size={96} />
+          <QRCode value={joinUrl} size={64} />
           <div className="muted small">{joinUrl}</div>
         </div>
       </header>
-
-      {session.status !== "ended" && (
-        <button className="end-session-link" onClick={endSession}>End session</button>
-      )}
 
       {session.status === "ended" ? (
         <div className="center"><h2>Session ended</h2></div>

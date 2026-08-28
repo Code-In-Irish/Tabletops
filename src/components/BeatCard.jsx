@@ -11,14 +11,14 @@ const OVERLAY_CLASS = {
   scene_comms: "signal-overlay",
 };
 
-// Tuned per scene so the parts of the illustration that carry the story
-// (the dish, the flames, the lightning) stay in frame at any viewport shape,
-// not just cover-fit centered and hope for the best.
+// With an 88vh-tall hero, plain center keeps the illustration's content in frame
+// on both wide desktop windows (which crop top/bottom) and narrow phones
+// (which crop left/right) without needing per-scene tuning.
 const SCENE_POSITION = {
   scene_wildfire: "center",
-  scene_weather: "center 35%",
-  scene_comms: "62% 40%",
-  scene_hotwash: "center 55%",
+  scene_weather: "center",
+  scene_comms: "center",
+  scene_hotwash: "center",
 };
 
 export default function BeatCard({ beat, scenario }) {
