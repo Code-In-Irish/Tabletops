@@ -14,15 +14,19 @@ function HostPicker() {
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    supabase.from("exercises").select("*").order("created_at", { ascending: false })
-      .then(({ data }) => setExercises(data || []));
+  function loadLiveSessions() {
     supabase
       .from("sessions")
       .select("*, exercises(title)")
       .eq("status", "live")
       .order("started_at", { ascending: false })
       .then(({ data }) => setLiveSessions(data || []));
+  }
+
+  useEffect(() => {
+    supabase.from("exercises").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => setExercises(data || []));
+    loadLiveSessions();
   }, []);
 
   async function startSession(exerciseId) {
@@ -44,6 +48,13 @@ function HostPicker() {
     if (!error) navigate(`/host/${session.id}`);
   }
 
+  async function endFromList(e, id) {
+    e.preventDefault();
+    e.stopPropagation();
+    await supabase.from("sessions").update({ status: "ended" }).eq("id", id);
+    setLiveSessions((prev) => prev.filter((s) => s.id !== id));
+  }
+
   return (
     <div className="page center">
       <h1>Host</h1>
@@ -53,9 +64,12 @@ function HostPicker() {
           <div className="section-label">Resume a live session</div>
           <div className="stack">
             {liveSessions.map((s) => (
-              <Link key={s.id} to={`/host/${s.id}`} className="card-btn">
-                <div className="card-btn-title">{s.room_code}</div>
-                <div className="muted small">{s.exercises?.title}</div>
+              <Link key={s.id} to={`/host/${s.id}`} className="card-btn session-row">
+                <div>
+                  <div className="card-btn-title">{s.room_code}</div>
+                  <div className="muted small">{s.exercises?.title}</div>
+                </div>
+                <button className="end-btn" onClick={(e) => endFromList(e, s.id)} title="End this session">End</button>
               </Link>
             ))}
           </div>
@@ -108,6 +122,7 @@ function HostConsole({ sessionId }) {
   const { beat, scenario, prompts } = useBeat(session?.current_beat_id);
   const submissions = useSubmissions(sessionId);
   const participants = useParticipants(sessionId);
+  const navigate = useNavigate();
 
   const joinUrl = `${window.location.origin}${window.location.pathname}#/r/${session?.room_code ?? ""}`;
 
@@ -117,13 +132,17 @@ function HostConsole({ sessionId }) {
   }
 
   async function endSession() {
+    if (!window.confirm("End this session? Participants will be disconnected.")) return;
     await supabase.from("sessions").update({ status: "ended" }).eq("id", sessionId);
+    navigate("/host");
   }
 
   if (!session) return <div className="page center"><p>Loading session…</p></div>;
 
   return (
     <div className="page host">
+      <Link to="/host" className="back-link">← All sessions</Link>
+
       <header className="host-top">
         <div>
           <div className="room-code">{session.room_code}</div>
@@ -134,6 +153,10 @@ function HostConsole({ sessionId }) {
           <div className="muted small">{joinUrl}</div>
         </div>
       </header>
+
+      {session.status !== "ended" && (
+        <button className="end-session-link" onClick={endSession}>End session</button>
+      )}
 
       {session.status === "ended" ? (
         <div className="center"><h2>Session ended</h2></div>

@@ -131,6 +131,42 @@ button {
   max-width: 1080px;
 }
 
+.back-link {
+  display: inline-block;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+.back-link:hover { color: var(--ink); }
+
+.end-session-link {
+  background: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  padding: 0;
+  margin-bottom: 1rem;
+  text-decoration: underline;
+}
+.end-session-link:hover { color: #b3261e; }
+
+.session-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+.end-btn {
+  background: var(--border);
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.end-btn:hover { background: #e8b4ac; }
+
 .host-top {
   display: flex;
   justify-content: space-between;
@@ -146,33 +182,57 @@ button {
   text-align: center;
 }
 
-.beat-card {
-  background: var(--bg-alt);
-  border: 2px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  overflow: hidden;
-}
-.beat-scene {
+.beat-hero {
   position: relative;
-  height: 190px;
+  width: 100vw;
+  left: 50%;
+  right: 50%;
+  margin-left: -50vw;
+  margin-right: -50vw;
+  min-height: 62vh;
   background-size: cover;
-  background-position: center;
+  background-color: #1a1a1a;
   overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  margin-bottom: 1.5rem;
 }
-.beat-scene-shade {
+.beat-hero-shade {
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, rgba(26,26,26,0.55), rgba(26,26,26,0) 60%);
+  background: linear-gradient(to top, rgba(10,10,10,0.88) 0%, rgba(10,10,10,0.35) 45%, rgba(10,10,10,0.05) 75%);
   pointer-events: none;
 }
-.beat-card-content {
-  padding: 1.1rem 1.25rem;
+.beat-hero-content {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 1.5rem 2rem;
+  color: #fff;
 }
-.scenario-title {
-  font-size: 0.85rem;
+.beat-hero .scenario-title {
+  font-size: 1rem;
   font-weight: 700;
-  margin-bottom: 0.2rem;
+  margin-bottom: 0.3rem;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+}
+.beat-hero .beat-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+  opacity: 0.9;
+}
+.beat-hero .beat-body {
+  margin: 0;
+  line-height: 1.55;
+  font-size: 1.05rem;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.6);
+}
+.page.host .beat-hero-content {
+  max-width: 1000px;
 }
 
 /* Wildfire: warm pulsing glow, like firelight */
