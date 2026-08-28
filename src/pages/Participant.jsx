@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useSession, useBeat } from "../lib/hooks";
+import BeatCard from "../components/BeatCard";
 
 function JoinForm({ onJoin }) {
   const [name, setName] = useState("");
@@ -129,11 +130,7 @@ export default function Participant() {
         {participant.display_name} <span className="muted">· {participant.role}</span>
       </div>
 
-      <section className="beat-card" style={{ borderColor: scenario ? `#${scenario.accent}` : undefined }}>
-        {scenario && <div className="scenario-title" style={{ color: `#${scenario.accent}` }}>{scenario.title}</div>}
-        <div className="beat-label">{beat.type.toUpperCase()} {beat.time_label && `· ${beat.time_label}`}</div>
-        <p className="beat-body">{beat.body_text}</p>
-      </section>
+      <BeatCard beat={beat} scenario={scenario} />
 
       {prompts.map((p) => (
         <PromptForm key={p.id} sessionId={session.id} participantId={participant.id} prompt={p} />

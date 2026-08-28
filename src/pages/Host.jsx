@@ -1,23 +1,32 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { QRCodeSVG as QRCode } from "qrcode.react";
 import { supabase } from "../lib/supabaseClient";
 import { useSession, useBeat, useSubmissions, useParticipants } from "../lib/hooks";
 import { generateRoomCode } from "../lib/roomCode";
+import BeatCard from "../components/BeatCard";
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function HostPicker() {
   const [exercises, setExercises] = useState([]);
+  const [liveSessions, setLiveSessions] = useState([]);
   const [creating, setCreating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     supabase.from("exercises").select("*").order("created_at", { ascending: false })
       .then(({ data }) => setExercises(data || []));
+    supabase
+      .from("sessions")
+      .select("*, exercises(title)")
+      .eq("status", "live")
+      .order("started_at", { ascending: false })
+      .then(({ data }) => setLiveSessions(data || []));
   }, []);
 
   async function startSession(exerciseId) {
     setCreating(true);
-    // find the first beat: lowest scenario order, then lowest beat order
     const { data: scenarios } = await supabase
       .from("scenarios").select("id").eq("exercise_id", exerciseId).order("order").limit(1);
     if (!scenarios?.length) { setCreating(false); return; }
@@ -37,7 +46,23 @@ function HostPicker() {
 
   return (
     <div className="page center">
-      <h1>Start a session</h1>
+      <h1>Host</h1>
+
+      {liveSessions.length > 0 && (
+        <>
+          <div className="section-label">Resume a live session</div>
+          <div className="stack">
+            {liveSessions.map((s) => (
+              <Link key={s.id} to={`/host/${s.id}`} className="card-btn">
+                <div className="card-btn-title">{s.room_code}</div>
+                <div className="muted small">{s.exercises?.title}</div>
+              </Link>
+            ))}
+          </div>
+          <div className="divider">or start new</div>
+        </>
+      )}
+
       {exercises.length === 0 && <p className="muted">No exercises found yet.</p>}
       <div className="stack">
         {exercises.map((ex) => (
@@ -48,6 +73,34 @@ function HostPicker() {
       </div>
     </div>
   );
+}
+
+// Accepts either a real session id (UUID) or a room code typed/pasted into the URL,
+// and resolves it to a session id before handing off to the live hooks.
+function useResolvedSessionId(param) {
+  const [resolvedId, setResolvedId] = useState(undefined); // undefined = resolving, null = not found
+  const [notFound, setNotFound] = useState(false);
+
+  useEffect(() => {
+    if (!param) return;
+    let active = true;
+
+    if (UUID_RE.test(param)) {
+      setResolvedId(param);
+      return;
+    }
+
+    supabase.from("sessions").select("id").eq("room_code", param.toUpperCase()).single()
+      .then(({ data }) => {
+        if (!active) return;
+        if (data) setResolvedId(data.id);
+        else { setResolvedId(null); setNotFound(true); }
+      });
+
+    return () => { active = false; };
+  }, [param]);
+
+  return { resolvedId, notFound };
 }
 
 function HostConsole({ sessionId }) {
@@ -88,11 +141,7 @@ function HostConsole({ sessionId }) {
         <div className="center"><p>Loading beat…</p></div>
       ) : (
         <>
-          <section className="beat-card" style={{ borderColor: scenario ? `#${scenario.accent}` : undefined }}>
-            {scenario && <div className="scenario-title" style={{ color: `#${scenario.accent}` }}>{scenario.title}</div>}
-            <div className="beat-label">{beat.type.toUpperCase()} {beat.time_label && `· ${beat.time_label}`}</div>
-            <p className="beat-body">{beat.body_text}</p>
-          </section>
+          <BeatCard beat={beat} scenario={scenario} />
 
           {prompts.map((p) => {
             const responses = submissions.filter((s) => s.prompt_id === p.id);
@@ -130,5 +179,10 @@ function HostConsole({ sessionId }) {
 
 export default function Host() {
   const { sessionId } = useParams();
-  return sessionId ? <HostConsole sessionId={sessionId} /> : <HostPicker />;
+  const { resolvedId, notFound } = useResolvedSessionId(sessionId);
+
+  if (!sessionId) return <HostPicker />;
+  if (notFound) return <div className="page center"><h2>Session not found</h2><p className="muted">Check the code or start a new session.</p></div>;
+  if (!resolvedId) return <div className="page center"><p>Loading session…</p></div>;
+  return <HostConsole sessionId={resolvedId} />;
 }
