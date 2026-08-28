@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
 import { useSession, useBeat } from "../lib/hooks";
-import BeatCard from "../components/BeatCard";
+import Stage from "../components/Stage";
+import ChatBubble from "../components/ChatBubble";
 
 function JoinForm({ onJoin }) {
   const [name, setName] = useState("");
@@ -53,8 +54,8 @@ function PromptForm({ sessionId, participantId, prompt }) {
   }
 
   return (
-    <section className="prompt-card">
-      <div className="prompt-question">{prompt.question_text}</div>
+    <div className="prompt-mini">
+      <div className="prompt-mini-q">{prompt.question_text}</div>
 
       {showMc && (
         <div className="mc-options">
@@ -71,7 +72,7 @@ function PromptForm({ sessionId, participantId, prompt }) {
       )}
 
       {showFree && (
-        <form className="free-form" onSubmit={submitFree}>
+        <form onSubmit={submitFree}>
           <textarea
             className="input textarea"
             placeholder="Your answer"
@@ -82,14 +83,14 @@ function PromptForm({ sessionId, participantId, prompt }) {
         </form>
       )}
 
-      {sent && <div className="muted small sent-note">Sent</div>}
-    </section>
+      {sent && <div className="sent-note">Sent</div>}
+    </div>
   );
 }
 
 export default function Participant() {
   const { roomCode } = useParams();
-  const [session, setSession] = useState(undefined); // undefined = loading, null = not found
+  const [session, setSession] = useState(undefined);
   const [participant, setParticipant] = useState(null);
 
   useEffect(() => {
@@ -106,6 +107,7 @@ export default function Participant() {
   const { session: liveSession } = useSession(session?.id);
   const currentBeatId = liveSession?.current_beat_id ?? session?.current_beat_id;
   const { beat, scenario, prompts } = useBeat(currentBeatId);
+  const inOpenFloor = liveSession && liveSession.current_beat_id === null;
 
   async function join(name, role) {
     const { data, error } = await supabase
@@ -122,19 +124,36 @@ export default function Participant() {
   if (session === null) return <div className="page center"><h2>Room not found</h2></div>;
   if (!participant) return <JoinForm onJoin={join} />;
   if (liveSession?.status === "ended") return <div className="page center"><h2>Session has ended</h2></div>;
-  if (!beat) return <div className="page center"><p>Waiting for the host to start…</p></div>;
 
   return (
-    <div className="page participant">
+    <div className="participant-shell">
       <div className="you-are">
         {participant.display_name} <span className="muted">· {participant.role}</span>
       </div>
 
-      <BeatCard beat={beat} scenario={scenario} />
+      {inOpenFloor ? (
+        <Stage beat={null} scenario={{ title: "", accent: "F7941D", scene_image: "scene_hotwash" }}>
+          <div className="open-floor-text">
+            <h2>Open Floor</h2>
+            <p>Questions, further discussion, anything else — use the comment bubble below.</p>
+          </div>
+        </Stage>
+      ) : !beat ? (
+        <div className="center"><p>Waiting for the host to start…</p></div>
+      ) : (
+        <Stage beat={beat} scenario={scenario}>
+          {prompts.map((p) => (
+            <PromptForm key={p.id} sessionId={session.id} participantId={participant.id} prompt={p} />
+          ))}
+        </Stage>
+      )}
 
-      {prompts.map((p) => (
-        <PromptForm key={p.id} sessionId={session.id} participantId={participant.id} prompt={p} />
-      ))}
+      <ChatBubble
+        sessionId={session.id}
+        authorName={participant.display_name}
+        authorRole={participant.role}
+        participantId={participant.id}
+      />
     </div>
   );
 }

@@ -89,7 +89,41 @@ export function useSubmissions(sessionId) {
   return submissions;
 }
 
-// Live participant roster for a session (name + role, shown on the host screen).
+// Live chat/comment ticker for a session. Persists for the whole session,
+// independent of which beat is currently showing.
+export function useChatMessages(sessionId) {
+  const [messages, setMessages] = useState([]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+    let active = true;
+
+    supabase.from("chat_messages").select("*").eq("session_id", sessionId).order("created_at", { ascending: true })
+      .then(({ data }) => { if (active) setMessages(data || []); });
+
+    const channel = supabase
+      .channel(`chat:${sessionId}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "chat_messages", filter: `session_id=eq.${sessionId}` },
+        (payload) => setMessages((prev) => [...prev, payload.new]))
+      .subscribe();
+
+    return () => { active = false; supabase.removeChannel(channel); };
+  }, [sessionId]);
+
+  return messages;
+}
+
+export async function sendChatMessage(sessionId, { participantId = null, authorName, authorRole = null, bodyText }) {
+  if (!bodyText?.trim()) return;
+  await supabase.from("chat_messages").insert({
+    session_id: sessionId,
+    participant_id: participantId,
+    author_name: authorName,
+    author_role: authorRole,
+    body_text: bodyText.trim(),
+  });
+}
+
 export function useParticipants(sessionId) {
   const [participants, setParticipants] = useState([]);
 
